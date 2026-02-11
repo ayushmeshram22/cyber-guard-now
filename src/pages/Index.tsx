@@ -1,12 +1,31 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import CyberHeader from "@/components/CyberHeader";
+import HeroSection from "@/components/HeroSection";
+import IncidentForm from "@/components/IncidentForm";
+import SuccessPage from "@/components/SuccessPage";
+import SupportOptions from "@/components/SupportOptions";
 
 const Index = () => {
+  const [ticketCode, setTicketCode] = useState<string | null>(null);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background cyber-bg-grid">
+      <CyberHeader />
+      {ticketCode ? (
+        <SuccessPage ticketCode={ticketCode} onReset={() => setTicketCode(null)} />
+      ) : (
+        <>
+          <HeroSection />
+          <IncidentForm onSuccess={setTicketCode} />
+          <SupportOptions />
+        </>
+      )}
+      <footer className="border-t border-border py-6 text-center">
+        <p className="text-xs text-muted-foreground">
+          © 2026 Genxdual Cyber Emergency Help Desk · All rights reserved · 
+          All information is confidential and used strictly for cybersecurity support.
+        </p>
+      </footer>
     </div>
   );
 };
