@@ -143,6 +143,19 @@ const IncidentForm = ({ onSuccess }: IncidentFormProps) => {
         // Attachments are stored in storage and can be found by ticket code folder
       }
 
+      // Trigger email notification (fire-and-forget)
+      supabase.functions.invoke("notify-incident", {
+        body: {
+          ticketCode,
+          fullName: values.fullName,
+          issueType: values.issueType,
+          priority: getPriority(values.issueType),
+          email: values.email || undefined,
+          phone: values.phone || undefined,
+          description: values.description,
+        },
+      }).catch((err) => console.warn("Notification failed:", err));
+
       onSuccess(ticketCode);
     } catch (error: any) {
       console.error("Submission error:", error);
