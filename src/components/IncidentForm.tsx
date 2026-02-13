@@ -108,7 +108,7 @@ const IncidentForm = ({ onSuccess }: IncidentFormProps) => {
       const ticketCode = ticketData as string;
 
       // Insert complaint
-      const { data: complaint, error: complaintError } = await supabase
+      const { error: complaintError } = await supabase
         .from("complaints")
         .insert({
           ticket_code: ticketCode,
@@ -120,15 +120,13 @@ const IncidentForm = ({ onSuccess }: IncidentFormProps) => {
           description: values.description,
           priority: getPriority(values.issueType) as "high" | "medium" | "low",
           consent_notifications: values.consent,
-        })
-        .select("id")
-        .single();
+        });
 
       if (complaintError) throw complaintError;
 
-      // Upload files
+      // Upload files using ticket code as folder
       for (const file of files) {
-        const filePath = `${complaint.id}/${Date.now()}-${file.name}`;
+        const filePath = `${ticketCode}/${Date.now()}-${file.name}`;
         const { error: uploadError } = await supabase.storage
           .from("incident-attachments")
           .upload(filePath, file);
@@ -142,13 +140,7 @@ const IncidentForm = ({ onSuccess }: IncidentFormProps) => {
           .from("incident-attachments")
           .getPublicUrl(filePath);
 
-        await supabase.from("attachments").insert({
-          complaint_id: complaint.id,
-          file_name: file.name,
-          file_url: urlData.publicUrl,
-          file_size: file.size,
-          mime_type: file.type,
-        });
+        // Attachments are stored in storage and can be found by ticket code folder
       }
 
       onSuccess(ticketCode);
