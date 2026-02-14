@@ -26,7 +26,8 @@ serve(async (req) => {
       throw new Error("Missing required fields: email, password, role");
     }
 
-    // Create the user
+    // Try to create the user, or update password if they already exist
+    let userId: string;
     const { data: userData, error: createError } = await supabase.auth.admin.createUser({
       email,
       password,
@@ -34,18 +35,32 @@ serve(async (req) => {
       user_metadata: { full_name: fullName || email },
     });
 
-    if (createError) throw createError;
+    if (createError) {
+      if (createError.message?.includes("already been registered")) {
+        // User exists, find and update password
+        const { data: users } = await supabase.auth.admin.listUsers();
+        const existing = users?.users?.find((u: any) => u.email === email);
+        if (!existing) throw new Error("User not found");
+        const { error: updateError } = await supabase.auth.admin.updateUserById(existing.id, { password });
+        if (updateError) throw updateError;
+        userId = existing.id;
+      } else {
+        throw createError;
+      }
+    } else {
+      userId = userData.user.id;
+    }
 
-    // Assign the role
-    const { error: roleError } = await supabase.from("user_roles").insert({
-      user_id: userData.user.id,
+    // Ensure the role exists
+    const { error: roleError } = await supabase.from("user_roles").upsert({
+      user_id: userId,
       role,
-    });
+    }, { onConflict: "user_id,role" });
 
     if (roleError) throw roleError;
 
     return new Response(
-      JSON.stringify({ success: true, userId: userData.user.id, email, role }),
+      JSON.stringify({ success: true, userId, email, role }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
