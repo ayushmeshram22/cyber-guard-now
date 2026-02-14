@@ -39,7 +39,7 @@ const handler = async (req: Request): Promise<Response> => {
     const adminEmail = Deno.env.get("ADMIN_NOTIFICATION_EMAIL") || "admin@genxdualcyber.com";
     
     const adminEmailResult = await resend.emails.send({
-      from: "Genxdual Cyber <noreply@genxdualcyber.com>",
+      from: "Genxdual Cyber <onboarding@resend.dev>",
       to: [adminEmail],
       subject: `🚨 [${priorityLabel}] New Incident: ${ticketCode} - ${issueType.replace("_", " ")}`,
       html: `
@@ -89,7 +89,7 @@ const handler = async (req: Request): Promise<Response> => {
     let userEmailResult = null;
     if (email) {
       userEmailResult = await resend.emails.send({
-        from: "Genxdual Cyber <noreply@genxdualcyber.com>",
+        from: "Genxdual Cyber <onboarding@resend.dev>",
         to: [email],
         subject: `Your Incident Report ${ticketCode} - Genxdual Cyber`,
         html: `
