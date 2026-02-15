@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Shield, Upload, X, FileText, Image } from "lucide-react";
+import { Shield, Upload, X, FileText, Image, Brain, Sparkles, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,6 +58,8 @@ const getPriority = (issueType: string): string => {
 const IncidentForm = ({ onSuccess }: IncidentFormProps) => {
   const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [triaging, setTriaging] = useState(false);
+  const [triageResult, setTriageResult] = useState<{ issueType: string; priority: string; reason: string } | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -99,6 +101,31 @@ const IncidentForm = ({ onSuccess }: IncidentFormProps) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const runTriage = async () => {
+    const description = form.getValues("description");
+    const issueType = form.getValues("issueType");
+    if (!description || description.length < 10) {
+      toast.error("Please provide a description (at least 10 chars) before running AI triage.");
+      return;
+    }
+    setTriaging(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("triage-incident", {
+        body: { description, issueType },
+      });
+      if (error) throw error;
+      setTriageResult(data);
+      // Auto-apply AI suggestions
+      if (data.issueType) form.setValue("issueType", data.issueType);
+      toast.success("AI triage complete — review the suggestions below.");
+    } catch (err: any) {
+      console.error("Triage error:", err);
+      toast.error("AI triage failed. You can still submit manually.");
+    } finally {
+      setTriaging(false);
+    }
+  };
+
   const onSubmit = async (values: FormValues) => {
     setSubmitting(true);
     try {
@@ -106,6 +133,8 @@ const IncidentForm = ({ onSuccess }: IncidentFormProps) => {
       const { data: ticketData, error: ticketError } = await supabase.rpc("generate_ticket_code");
       if (ticketError) throw ticketError;
       const ticketCode = ticketData as string;
+
+      const finalPriority = triageResult?.priority || getPriority(values.issueType);
 
       // Insert complaint
       const { error: complaintError } = await supabase
@@ -118,7 +147,7 @@ const IncidentForm = ({ onSuccess }: IncidentFormProps) => {
           email: values.email || null,
           issue_type: values.issueType,
           description: values.description,
-          priority: getPriority(values.issueType) as "high" | "medium" | "low",
+          priority: finalPriority as "high" | "medium" | "low",
           consent_notifications: values.consent,
         });
 
@@ -279,6 +308,54 @@ const IncidentForm = ({ onSuccess }: IncidentFormProps) => {
                     </FormItem>
                   )}
                 />
+
+                {/* AI Triage */}
+                <div className="space-y-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={runTriage}
+                    disabled={triaging}
+                    className="w-full cyber-border hover:bg-primary/5"
+                  >
+                    {triaging ? (
+                      <>
+                        <Brain className="h-4 w-4 mr-2 animate-pulse" />
+                        AI is analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2 text-primary" />
+                        AI Auto-Classify & Prioritize
+                      </>
+                    )}
+                  </Button>
+
+                  {triageResult && (
+                    <div className="bg-primary/5 rounded-lg cyber-border p-4 space-y-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Brain className="h-4 w-4 text-primary" />
+                        <span className="text-xs font-bold text-primary font-mono">AI TRIAGE RESULT</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-xs text-muted-foreground">Suggested Type</span>
+                          <p className="text-foreground font-medium">{triageResult.issueType.split("_").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground">Suggested Priority</span>
+                          <p className={`font-bold ${triageResult.priority === "high" ? "text-destructive" : triageResult.priority === "medium" ? "text-warning" : "text-primary"}`}>
+                            {triageResult.priority.toUpperCase()}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{triageResult.reason}</p>
+                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Edit2 className="h-3 w-3" /> You can still change the issue type above before submitting.
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 {/* File Upload */}
                 <div className="space-y-3">

@@ -1,4 +1,5 @@
-import { Shield, Lock, Wifi } from "lucide-react";
+import { Shield, Lock, Wifi, Search } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const CyberHeader = () => {
   return (
@@ -17,12 +18,19 @@ const CyberHeader = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <Link
+            to="/track"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/10 text-accent text-xs font-medium cyber-border hover:bg-accent/20 transition-colors"
+          >
+            <Search className="h-3 w-3" />
+            Track Ticket
+          </Link>
           <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium cyber-border">
             <Wifi className="h-3 w-3" />
             Cyber Incident Reporting
           </span>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/5 cyber-border">
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/5 cyber-border">
             <Lock className="h-3 w-3 text-primary" />
             <span className="text-xs text-primary font-medium">Secure Connection</span>
           </div>

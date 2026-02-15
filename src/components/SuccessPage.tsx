@@ -1,6 +1,7 @@
-import { CheckCircle, Copy, AlertTriangle, ArrowLeft, Phone, MessageCircle, Mail } from "lucide-react";
+import { CheckCircle, Copy, AlertTriangle, ArrowLeft, Phone, MessageCircle, Mail, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 interface SuccessPageProps {
   ticketCode: string;
@@ -81,10 +82,18 @@ const SuccessPage = ({ ticketCode, onReset }: SuccessPageProps) => {
             </div>
           </div>
 
-          <Button onClick={onReset} variant="outline" className="cyber-border">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Submit Another Report
-          </Button>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button onClick={onReset} variant="outline" className="cyber-border">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Submit Another Report
+            </Button>
+            <Button variant="outline" className="cyber-border" asChild>
+              <Link to="/track">
+                <Search className="h-4 w-4 mr-2" />
+                Track Your Ticket
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     </section>

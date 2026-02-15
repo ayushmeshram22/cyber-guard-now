@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Lock, LogOut, AlertTriangle, CheckCircle, Clock, Users, FileWarning, MessageSquare, Send } from "lucide-react";
+import { Shield, Lock, LogOut, AlertTriangle, CheckCircle, Clock, Users, FileWarning, MessageSquare, Send, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import AnalyticsCharts from "@/components/AnalyticsCharts";
 
 type Complaint = Database["public"]["Tables"]["complaints"]["Row"];
 type IncidentStatus = Database["public"]["Enums"]["incident_status"];
@@ -33,6 +34,7 @@ const AdminDashboard = () => {
   const [userRole, setUserRole] = useState<string>("");
   const [noteText, setNoteText] = useState("");
   const [notes, setNotes] = useState<Array<{ id: string; content: string; created_at: string }>>([]);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -116,6 +118,9 @@ const AdminDashboard = () => {
   };
 
   const updateStatus = async (id: string, status: IncidentStatus) => {
+    const complaint = complaints.find((c) => c.id === id);
+    const oldStatus = complaint?.status;
+
     const { error } = await supabase
       .from("complaints")
       .update({ status })
@@ -128,6 +133,19 @@ const AdminDashboard = () => {
       fetchComplaints();
       if (selectedComplaint?.id === id) {
         setSelectedComplaint((prev) => prev ? { ...prev, status } : null);
+      }
+
+      // Send notification to reporter if they have an email
+      if (complaint?.email) {
+        supabase.functions.invoke("notify-status-change", {
+          body: {
+            ticketCode: complaint.ticket_code,
+            fullName: complaint.full_name,
+            email: complaint.email,
+            oldStatus,
+            newStatus: status,
+          },
+        }).catch((err) => console.warn("Status notification failed:", err));
       }
     }
   };
@@ -193,6 +211,19 @@ const AdminDashboard = () => {
           <KPICard icon={<Clock className="h-5 w-5" />} label="Escalated" value={stats.escalated} destructive />
           <KPICard icon={<CheckCircle className="h-5 w-5" />} label="Closed" value={stats.closed} />
         </div>
+
+        {/* Analytics Toggle */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowAnalytics(!showAnalytics)}
+          className="cyber-border"
+        >
+          <BarChart3 className="h-4 w-4 mr-2" />
+          {showAnalytics ? "Hide Analytics" : "Show Analytics"}
+        </Button>
+
+        {showAnalytics && <AnalyticsCharts complaints={complaints} />}
 
         {/* Main content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
